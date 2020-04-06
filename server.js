@@ -3,6 +3,7 @@ const express = require('express');
 const app = express();
 const http = require('http').Server(app);
 
+const cors = require('cors');
 const bodyParser = require('body-parser');
 const config = require('./secretConfig.json');
 
@@ -10,7 +11,11 @@ const DB = require('./DB');
 
 DB.init();
 
-
+// CORS 설정 Cross Origin 문제 해결 XHR
+app.use(cors({
+	origin: '*',
+	optionsSuccessStatus: 200,
+}));
 
 // Body-parser
 app.use(bodyParser.urlencoded({ extended: true, limit: '5mb' }));
