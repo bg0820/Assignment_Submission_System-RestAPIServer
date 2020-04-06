@@ -102,3 +102,6 @@ dist
 
 # TernJS port file
 .tern-port
+
+# DB 접속 계정 및 설정파일들
+secretConfig.json
