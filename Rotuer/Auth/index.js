@@ -11,5 +11,8 @@ router.post('/register', async function(req, res) {
 	
 });
 
+router.post('/login', async function(req, res) {
+	
+});
 
 module.exports = router;
