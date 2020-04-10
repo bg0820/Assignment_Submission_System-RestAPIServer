@@ -81,12 +81,17 @@ router.get('/list/student', async function(req, res) {
         
         const list = await pool.query(con, query, [userIdx]);
 
+		res.send({
+            msg: '조회 성공',
+            list: list
+        });
 
 	} catch (error) {
 		console.log('에러났을때 처리하는 부분', error);
 		// if(error.errno === 1062) {
 		// 	res.send({msg: '이미 개설된 강의 입니다.'});
 		// } else
+			res.send({msg: '알수없는 에러 실패'});
 	} finally {
 		// con.release();
 	}
