@@ -64,6 +64,28 @@ class Builder {
 			});
 		});
 	}
+
+	java_excute = (execPath, className) => {
+		var spw = child.spawn('bin/jdk1.8.0_241/bin/java', [
+			'-cp',
+			execPath,
+			className
+		]);
+
+		return new Promise(function(resolve, reject) {
+			spw.stdout.on('data', function(out) {
+				console.log('excute out', out.toString('utf8'));
+			});
+			spw.stderr.on('data', function(err) {
+				console.log('excute err', err.toString('utf8')); //err.toString('ascii'));
+			});
+	
+			spw.on('exit', (code) => {
+				console.log('Excute Success', code);
+				resolve(code);
+			});
+		});
+	}
 	
 	c_compile = async (output, input) => {
 		var spw = child.spawn('g++', [
@@ -109,6 +131,7 @@ class Builder {
 		});
 	}
 
+	
 }
 
 const builder = new Builder();
