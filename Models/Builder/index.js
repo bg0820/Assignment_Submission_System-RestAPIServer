@@ -43,6 +43,33 @@ class Builder {
 		return '';
 	}
 
+	c_compile = async (output, input) => {
+		var spw = child.spawn('g++', [
+			'-o',
+			output,
+			'-g',
+			input,
+			'-std=c++11'
+		]);
+
+
+		return new Promise(function(resolve, reject) {
+			spw.stdout.on('data', function(out) {
+				console.log('compile out', out.toString('utf8'));
+			});
+
+			spw.stderr.on('data', function(err) {
+				// console.log('err', err);
+				console.log('compile err', err.toString('utf8'));
+			});
+			
+			spw.on('exit', (code) => {
+				console.log('Compile Success ' + code);
+				resolve(code);
+			});
+		});
+	}
+
 }
 
 const builder = new Builder();
