@@ -27,6 +27,7 @@ app.use(function(req, res, next) {
 });
 
 app.use('/auth', require('./Rotuer/Auth'));
+app.use('/test', require('./Rotuer/Test'));
 
 http.listen(3000, function(){
 	console.log('rest api server on 3000'); 
