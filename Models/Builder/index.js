@@ -86,7 +86,7 @@ class Builder {
 			});
 		});
 	}
-	
+
 	c_compile = async (output, input) => {
 		var spw = child.spawn('g++', [
 			'-o',
@@ -129,6 +129,44 @@ class Builder {
 				resolve(code);
 			});
 		});
+	}
+
+	submission = async (studentId, taskIdx, code, language) => {
+		let userDirectory = "Submission/" + studentId;
+		let taskDirectory = userDirectory  + "/" + taskIdx;
+
+		if(language === 'c/c++') {
+			let outputPath = taskDirectory + '/c_output';
+			this.studentInit(userDirectory, taskDirectory, "main.cpp", code);
+			
+			let par = this;
+			this.c_compile(outputPath, taskDirectory + '/main.cpp').then(function(code) {
+				par.c_excute(outputPath, language);
+			}).catch(function(err) {
+				console.log(err);
+			});
+		} else if(language === 'java') {
+			// 자바의 경우 클래스 이름과 파일 이름이 같아야함
+			let classNameRegex = /(?<=class)(\s)*([a-zA-Z]).*(?=\{)/gi;
+			let className = code.match(classNameRegex)[0].trim();
+			let fileName = className + ".java"; 
+
+			console.log(className, fileName);
+			
+			let par = this;
+			this.studentInit(userDirectory, taskDirectory, fileName, code);
+
+			this.java_compile(taskDirectory + '/' + fileName).then(function(code) {
+				par.java_excute(taskDirectory + '/', className);
+			}).catch(function(err) {
+				console.log(err);
+			});
+		} else if(language === 'python') {
+			// fileName = "main.py";
+		} else if(language === 'html') {
+			// fileName = "index.html";
+		}
+		
 	}
 
 	
