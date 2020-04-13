@@ -51,7 +51,31 @@ router.post('/create', async function (req, res) {
 });
 
 router.get('/list/professor', async function(req, res) {
-  
+    const {courseIdx} = req.body;
+    console.log("요청들어온 courseIdx : ",courseIdx);
+    
+    let con;
+    try {
+        con = await pool.getConnection();
+    
+        const query = "select title,content,courseIdx,expireDate,extendDate from task where courseIdx = ?";
+        
+        const list = await pool.query(con, query, [courseIdx]);
+            
+        res.send({
+            msg: '조회 성공',
+            list: list
+        });
+    
+    } catch (error) {
+        console.log('에러났을때 처리하는 부분', error);
+        // if(error.errno === 1062) {
+        // 	res.send({msg: '이미 개설된 강의 입니다.'});
+        // } else
+            res.send({msg: '알수없는 에러 실패'});
+    } finally {
+        // con.release();
+    }
 });
 
 
