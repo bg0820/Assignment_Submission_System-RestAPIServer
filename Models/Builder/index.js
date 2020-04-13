@@ -70,6 +70,23 @@ class Builder {
 		});
 	}
 
+	c_excute = (execPath) => {
+		var spw = child.spawn(execPath, []);
+
+		return new Promise(function(resolve, reject) {
+			spw.stdout.on('data', function(out) {
+				console.log('excute out', out.toString('utf8'));
+			});
+			spw.stderr.on('data', function(err) {
+				console.log('excute err', err.toString('utf8')); //err.toString('ascii'));
+			});
+			spw.on('exit', (code) => {
+				console.log('Excute Success', code);
+				resolve(code);
+			});
+		});
+	}
+
 }
 
 const builder = new Builder();
