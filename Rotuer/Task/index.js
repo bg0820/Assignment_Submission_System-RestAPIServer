@@ -79,4 +79,11 @@ router.get('/list/professor', async function(req, res) {
 });
 
 
+router.get('/list/student', async function(req, res) {
+    
+});
+
+
+
+
 module.exports = router;
