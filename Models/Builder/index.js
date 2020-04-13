@@ -43,6 +43,28 @@ class Builder {
 		return '';
 	}
 
+	java_compile = async (directory) => {
+		var spw = child.spawn('bin/jdk1.8.0_241/bin/javac', [
+			directory
+		]);
+		
+		return new Promise(function(resolve, reject) {
+			spw.stdout.on('data', function(out) {
+				console.log('compile out', out.toString('utf8'));
+			});
+
+			spw.stderr.on('data', function(err) {
+				console.log('compile err', err.toString('utf8'));
+				// console.log('err', err.toString('ascii'));
+			});
+			
+			spw.on('exit', (code) => {
+				console.log('Compile Success ' + code);
+				resolve(code);
+			});
+		});
+	}
+	
 	c_compile = async (output, input) => {
 		var spw = child.spawn('g++', [
 			'-o',
