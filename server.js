@@ -28,6 +28,8 @@ app.use(function(req, res, next) {
 
 app.use('/auth', require('./Router/Auth'));
 app.use('/test', require('./Router/Test'));
+app.use('/course', require('./Router/Course'));
+app.use('/task', require('./Router/Task'));
 
 http.listen(3000, function(){
 	console.log('rest api server on 3000'); 
