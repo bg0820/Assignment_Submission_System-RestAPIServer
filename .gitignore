@@ -107,3 +107,4 @@ dist
 secretConfig.json
 
 package-lock.json
+.vscode/
