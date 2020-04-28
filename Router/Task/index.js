@@ -50,17 +50,21 @@ router.post('/create', async function (req, res) {
 
 });
 
-router.get('/list/professor', async function(req, res) {
-    const {courseIdx} = req.body;
-    console.log("요청들어온 courseIdx : ",courseIdx);
+router.get('/list', async function(req, res) {
+    const decode = req.decode; // {courseIdx} = req.body;
+    console.log(decode);
     
     let con;
     try {
         con = await pool.getConnection();
-    
-        const query = "select title,content,courseIdx,expireDate,extendDate from task where courseIdx = ?";
-        
-        const list = await pool.query(con, query, [courseIdx]);
+	
+		let query = '';
+		if(req.decode.userType === 0) 
+			query =   'select taskIdx,directory,score,language,submissionDate from evaluation where userIdx = ?';
+		else
+        	query = "select title,content,courseIdx,expireDate,extendDate from task where userIdx = ?";
+		
+        const list = await pool.query(con, query, [decode.userIdx]);
             
         res.send({
             msg: '조회 성공',
@@ -78,6 +82,7 @@ router.get('/list/professor', async function(req, res) {
     }
 });
 
+/*
 
 router.get('/list/student', async function(req, res) {
     const {userIdx} = req.body;
@@ -87,8 +92,7 @@ router.get('/list/student', async function(req, res) {
 	try {
 		con = await pool.getConnection();
 
-		const query =   'select taskIdx,directory,score,language,submissionDate from evaluation where userIdx = ?';
-        
+		
         const list = await pool.query(con, query, [userIdx]);
 
 		res.send({
@@ -105,7 +109,7 @@ router.get('/list/student', async function(req, res) {
 	} finally {
 		// con.release();
 	}
-});
+});*/
 
 
 
