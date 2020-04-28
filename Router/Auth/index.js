@@ -1,6 +1,8 @@
+
 const router = require('express').Router();
 const pool = require('../../DB');
 const crypto = require('crypto');
+const Util = require('../../Util');
 
 // GET
 // GET  req.query
@@ -48,7 +50,14 @@ router.post('/login', async function(req, res) {
 		
 		let result = await pool.query(con, query, [id, _pw_sha256_hash]);
 		if(result.length === 1) {
-			res.send({msg: '로그인 성공'});
+			let token = Util.TokenGen({
+				userIdx: result[0].userIdx,
+				id: result[0].id,
+				name: result[0].name,
+				email: result[0].email,
+				userType: result[0].userType
+			});
+			res.send({msg: '로그인 성공', token: token});
 		} else {
 			res.send({msg: '로그인 실패'});
 		}
