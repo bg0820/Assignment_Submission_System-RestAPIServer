@@ -74,18 +74,28 @@ router.get('/list', async function(req, res) {
     let con;
     try {
         con = await pool.getConnection();
-	
+    
+        let result;
 		let query = '';
-		if(req.decode.userType === 0) 
-			query =   'select taskIdx,directory,score,language,submissionDate from evaluation where userIdx = ?';
-		else
-        	query = "select title,content,courseIdx,expireDate,extendDate from task where userIdx = ?";
-		
-        const list = await pool.query(con, query, [decode.userIdx]);
+		if(req.decode.userType === 0) {// 학생인경우
+			query =   'SELECT t.taskIdx, professorUser.name  as professorName, c.courseName,  t.title, t.content, c.language, t.expireDate, t.extendDate ' +
+                        ' FROM (invited_course ic LEFT JOIN course c on ic.courseIdx = c.courseIdx ' +
+                        ' LEFT JOIN user professorUser on c.userIdx = professorUser.userIdx) ' +
+                        ' RIGHT JOIN task t on t.courseIdx = ic.courseIdx ' +
+                        ' where ic.userIdx = ?';
+
+            result = await pool.query(con, query, [decode.userIdx]);
+            
+            for(var i = 0 ; i < result.length; i++) {
+                const isSubmission = 'select count(evaluationIdx) as count from evaluation WHERE userIdx = ? and taskIdx = ?'
+                const isSubmissionResult = await pool.query(con, isSubmission, [decode.userIdx, result[i].taskIdx]);
+
+                result[i].isSubmission = isSubmissionResult[0].count == 0 ? false : true
+            }
             
         res.send({
             msg: '조회 성공',
-            list: list
+            list: result
         });
     
     } catch (error) {
