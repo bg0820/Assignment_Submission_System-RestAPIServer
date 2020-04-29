@@ -1,5 +1,7 @@
 const router = require('express').Router();
 const pool = require('../../DB');
+const jwt      = require('jsonwebtoken');
+const jConfig = require('../../secretConfig.json');
 
 
 // 미들웨어 헤더 검사
