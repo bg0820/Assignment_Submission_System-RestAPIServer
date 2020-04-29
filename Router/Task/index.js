@@ -39,29 +39,20 @@ router.use(function(req, res, next){
 */
 
 router.post('/create', async function (req, res) {
-    let { title, content, courseIdx, expireDate, extendType, extendDate } = req.body;
+    // 과제 제목, 과제 설명, 강의 고유번호, 연장기한 사용 여부, 연장기한
+    const { title, content, courseIdx, expireDate, extendType, extendDate } = req.body;
     let con;
     try {
         con = await pool.getConnection();
 
         const query = "INSERT INTO task (title,content,courseIdx,expireDate,extendType,extendDate) values (?, ?, ?, ?, ?, ?)";
 
-        if (extendType == 0) {
-            extendDate = "";
-        } else {
-            console.log('extendDate : ',extendDate);
-            if (!extendDate) {
-                console.log('연장일 입력안함')
-                res.send({ msg: '연장일을 입력해주세요' });
-                return;
-            } else {
+        if (extendType == 0) 
+            extendDate = null;
 
-            }
-        }
         await pool.query(con, query, [title, content, courseIdx, expireDate, extendType, extendDate]);
 
         res.send({ msg: '과제 생성 성공' });
-
     } catch (error) {
         console.log('에러났을때 처리하는 부분', error);
         // if(error.errno === 1062) {
