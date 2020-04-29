@@ -92,6 +92,11 @@ router.get('/list', async function(req, res) {
 
                 result[i].isSubmission = isSubmissionResult[0].count == 0 ? false : true
             }
+        }
+		else {// 교수인경우
+            query = "select t.taskIdx, t.title, t.content, t.expireDate, t.extendDate from task t left join course c on t.courseIdx = c.courseIdx where c.userIdx= ?";
+            result = await pool.query(con, query, [decode.userIdx]);
+        }
             
         res.send({
             msg: '조회 성공',
