@@ -22,6 +22,9 @@ router.use(function(req, res, next){
 			res.status(400).send({result: 'failed', msg: '유효하지 않은 토큰 입니다.'});
 		else {
 			req.decode = decoded;
+			/*
+				req.decode. { id, name, email, userType}
+			*/
 			next();
 		}
 	});
@@ -73,11 +76,11 @@ router.get('/list', async function(req, res) {
 		con = await pool.getConnection();
 
 		let query = '';
-		if(decode.userType === 0) {
+		if(decode.userType === 0) { // 학생 
 			query =   	"SELECT ic.inviteCourseIdx, ic.courseIdx, c.courseName, c.language, c.courseIdx, proU.name, proU.email " +
 						" FROM invited_course ic LEFT JOIN course c on ic.courseIdx = c.courseIdx LEFT JOIN user proU on c.userIdx = proU.userIdx " +
 						" WHERE ic.userIdx = ?";
-		} else {
+		} else if(decode.userType == 1) { // 교수
 			query = "select courseIdx, courseName, language from course where userIdx = ?";
 		}
 
@@ -98,39 +101,5 @@ router.get('/list', async function(req, res) {
 		// con.release();
 	}
 });
-
-
-/*
-
-router.get('/list/student', async function(req, res) {
-    const {userIdx} = req.body;
-    console.log("요청들어온 userIdx : ",userIdx);
-
-	let con;
-	try {
-		con = await pool.getConnection();
-
-		const query =   "select distinct ic.inviteCourseIdx, ic.courseIdx, ic.userIdx, c.courseName, c.language " +
-                        "From invited_course ic left join course c on ic.courseIdx = c.courseIdx " +
-                        "WHERE ic.userIdx = ?";
-        
-        const list = await pool.query(con, query, [userIdx]);
-
-		res.send({
-            msg: '조회 성공',
-            list: list
-        });
-
-	} catch (error) {
-		console.log('에러났을때 처리하는 부분', error);
-		// if(error.errno === 1062) {
-		// 	res.send({msg: '이미 개설된 강의 입니다.'});
-		// } else
-			res.send({msg: '알수없는 에러 실패'});
-	} finally {
-		// con.release();
-	}
-});
-*/
 
 module.exports = router;
