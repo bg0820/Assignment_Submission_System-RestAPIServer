@@ -125,7 +125,7 @@ router.get('/detail', async function(req, res) {
 
 		res.send({
             msg: '조회 성공',
-            detail: result
+            info: result[0]
         });
 	} catch (error) {
 		console.log('에러났을때 처리하는 부분', error);
