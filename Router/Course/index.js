@@ -46,6 +46,10 @@ router.post('/create', async function(req, res) {
 	const {courseName, language, userIdxList} = req.body;
 	let decode = req.decode;
 
+	if(decode.userType !== 1) {
+		res.status(404).send({msg: '교수 계정이 아닙니다.'});
+		return;
+	}
 
 	let con;
 	try {
