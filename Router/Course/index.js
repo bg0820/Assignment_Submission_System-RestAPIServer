@@ -43,23 +43,30 @@ router.use(function(req, res, next){
 
 */
 router.post('/create', async function(req, res) {
-	const {userIdx,courseName} = req.body;
+	const {courseName, language, userIdxList} = req.body;
+	let decode = req.decode;
+
+
 	let con;
 	try {
 		con = await pool.getConnection();
 
-		const query = "INSERT INTO course (userIdx, courseName) values (?, ?)";
+		const query = "INSERT INTO course (userIdx, courseName, language) values (?, ?, ?)";
+		const inviteQuery = "INSERT INTO invited_course (courseIdx, userIdx) values (?, ?)";
+
+		let courseResult = await pool.query(con, query, [decode.userIdx, courseName, language]);
 		
-		await pool.query(con, query, [userIdx, courseName]);
+		// 학생 초대
+		for(var i = 0 ; i < userIdxList.length; i++) 
+			await pool.query(con, inviteQuery, [courseResult.insertId, userIdxList[i]]);
 
 		res.status(200).send({msg: '강의개설 성공'});
-
 	} catch (error) {
 		console.log('에러났을때 처리하는 부분', error);
 		// if(error.errno === 1062) {
 		// 	res.send({msg: '이미 개설된 강의 입니다.'});
 		// } else
-			res.status(404).send({msg: '알수없는 에러 실패'});
+		res.status(404).send({msg: '알수없는 에러 실패'});
 	} finally {
 		con.release();
 	}
