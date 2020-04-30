@@ -22,6 +22,7 @@ router.use(function(req, res, next){
 			res.status(400).send({result: 'failed', msg: '유효하지 않은 토큰 입니다.'});
 		else {
 			req.decode = decoded;
+			console.log(req.decode);
 			next();
 		}
 	});
@@ -57,9 +58,6 @@ router.post('/create', async function (req, res) {
         res.send({ msg: '과제 생성 성공' });
     } catch (error) {
         console.log('에러났을때 처리하는 부분', error);
-        // if(error.errno === 1062) {
-        // 	res.send({msg: '이미 개설된 강의 입니다.'});
-        // } else
         res.send({ msg: '알수없는 에러 실패' });
     } finally {
         con.release();
@@ -68,8 +66,7 @@ router.post('/create', async function (req, res) {
 });
 
 router.get('/list', async function(req, res) {
-    const decode = req.decode; // {courseIdx} = req.body;
-    console.log(decode);
+    const decode = req.decode;
     
     let con;
     try {
@@ -104,46 +101,40 @@ router.get('/list', async function(req, res) {
         });
     
     } catch (error) {
-        console.log('에러났을때 처리하는 부분', error);
-        // if(error.errno === 1062) {
-        // 	res.send({msg: '이미 개설된 강의 입니다.'});
-        // } else
-            res.send({msg: '알수없는 에러 실패'});
+		console.log('에러났을때 처리하는 부분', error);
+		
+    	res.send({msg: '알수없는 에러 실패'});
     } finally {
-        // con.release();
+        con.release();
     }
 });
 
-/*
-
-router.get('/list/student', async function(req, res) {
-    const {userIdx} = req.body;
-    console.log("요청들어온 userIdx : ",userIdx);
+router.get('/detail', async function(req, res) {
+	const {taskIdx} = req.query;
+	const decode = req.decode; 
 
 	let con;
-	try {
+    try {
 		con = await pool.getConnection();
+		const query = 'SELECT t.title, t.content, c.language FROM task t left join course c on t.courseIdx = c.courseIdx WHERE t.taskIdx = ?';
+		const exampleQuery = "SELECT num, input, output FROM task_example WHERE taskIdx = ?";
 
-		
-        const list = await pool.query(con, query, [userIdx]);
+		let result = await pool.query(con, query, [taskIdx]);
+		let exampleResult = await pool.query(con, exampleQuery, [taskIdx]);
+		result[0].example = exampleResult;
 
 		res.send({
             msg: '조회 성공',
-            list: list
+            detail: result
         });
-
 	} catch (error) {
 		console.log('에러났을때 처리하는 부분', error);
-		// if(error.errno === 1062) {
-		// 	res.send({msg: '이미 개설된 강의 입니다.'});
-		// } else
-			res.send({msg: '알수없는 에러 실패'});
-	} finally {
-		// con.release();
-	}
-});*/
+    	res.send({msg: '알수없는 에러 실패'});
+    } finally {
+        con.release();
+    }
 
-
+});
 
 
 module.exports = router;
