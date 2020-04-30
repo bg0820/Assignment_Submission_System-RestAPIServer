@@ -110,6 +110,29 @@ router.get('/list', async function(req, res) {
 });
 
 router.get('/detail', async function(req, res) {
+	const {taskIdx} = req.query;
+	const decode = req.decode; 
+
+	let con;
+    try {
+		con = await pool.getConnection();
+		const query = 'SELECT t.title, t.content, c.language FROM task t left join course c on t.courseIdx = c.courseIdx WHERE t.taskIdx = ?';
+		const exampleQuery = "SELECT num, input, output FROM task_example WHERE taskIdx = ?";
+
+		let result = await pool.query(con, query, [taskIdx]);
+		let exampleResult = await pool.query(con, exampleQuery, [taskIdx]);
+		result[0].example = exampleResult;
+
+		res.send({
+            msg: '조회 성공',
+            detail: result
+        });
+	} catch (error) {
+		console.log('에러났을때 처리하는 부분', error);
+    	res.send({msg: '알수없는 에러 실패'});
+    } finally {
+        con.release();
+    }
 
 });
 
