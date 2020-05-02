@@ -91,11 +91,15 @@ router.get('/list', async function(req, res) {
 			query =   	"SELECT ic.inviteCourseIdx, ic.courseIdx, c.courseName, c.language, proU.name as professorName, proU.email " +
 						" FROM invited_course ic LEFT JOIN course c on ic.courseIdx = c.courseIdx LEFT JOIN user proU on c.userIdx = proU.userIdx " +
 						" WHERE ic.userIdx = ?";
-		} else if(decode.userType == 1) { // 교수
-			query = "select courseIdx, courseName, language from course where userIdx = ?";
+		} else {
+			query = "select c.courseIdx, courseName, language, ic.count  from " + 
+					"course c left  join (Select courseIdx, count(courseIdx) as count from invited_course group by courseIdx) " +
+					" ic on c.courseIdx = ic.courseIdx where c.userIdx = ?";
 		}
 
-        const list = await pool.query(con, query, [decode.userIdx]);
+		const list = await pool.query(con, query, [decode.userIdx]);
+		for(var i = 0 ; i < list.length; i++)
+			list[i].count = list[i].count == null ? 0 : list[i].count;
             
 		res.status(200).send({
             msg: '조회 성공',
