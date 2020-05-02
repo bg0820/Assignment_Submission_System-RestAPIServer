@@ -109,7 +109,7 @@ router.get('/list', async function(req, res) {
 		// } else
 			res.status(404).send({msg: '알수없는 에러 실패'});
 	} finally {
-		// con.release();
+		con.release();
 	}
 });
 
