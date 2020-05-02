@@ -88,7 +88,7 @@ router.get('/list', async function(req, res) {
 
 		let query = '';
 		if(decode.userType === 0) {
-			query =   	"SELECT ic.inviteCourseIdx, ic.courseIdx, c.courseName, c.language, proU.name, proU.email " +
+			query =   	"SELECT ic.inviteCourseIdx, ic.courseIdx, c.courseName, c.language, proU.name as professorName, proU.email " +
 						" FROM invited_course ic LEFT JOIN course c on ic.courseIdx = c.courseIdx LEFT JOIN user proU on c.userIdx = proU.userIdx " +
 						" WHERE ic.userIdx = ?";
 		} else if(decode.userType == 1) { // 교수
