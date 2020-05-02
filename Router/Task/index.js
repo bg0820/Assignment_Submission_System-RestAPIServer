@@ -43,17 +43,34 @@ router.use(function(req, res, next){
 
 router.post('/create', async function (req, res) {
     // 과제 제목, 과제 설명, 강의 고유번호, 연장기한 사용 여부, 연장기한
-    const { title, content, courseIdx, expireDate, extendType, extendDate } = req.body;
+    const { title, content, courseIdx, expireDate, extendType, extendDate, examples } = req.body;
     let con;
     try {
         con = await pool.getConnection();
 
         const query = "INSERT INTO task (title,content,courseIdx,expireDate,extendType,extendDate) values (?, ?, ?, ?, ?, ?)";
+		const exampleQuery = "INSERT INTO task_example (taskIdx, num, input, output) values (?, ?, ?, ?)";
 
         if (extendType == 0) 
             extendDate = null;
 
-        await pool.query(con, query, [title, content, courseIdx, expireDate, extendType, extendDate]);
+        let taskInsertResult = await pool.query(con, query, [
+			title, 
+			content, 
+			courseIdx, 
+			expireDate, 
+			extendType, 
+			extendDate
+		]);
+
+		for(var i = 0 ; i < examples.length; i++) {
+			await pool.query(con, exampleQuery, [
+				taskInsertResult.insertId, 
+				i + 1,
+				examples[i].input,
+				examples[i].output
+			]);
+		}
 
         res.send({ msg: '과제 생성 성공' });
     } catch (error) {
@@ -111,7 +128,8 @@ router.get('/list', async function(req, res) {
 
 router.get('/detail', async function(req, res) {
 	const {taskIdx} = req.query;
-	const decode = req.decode; 
+    const decode = req.decode; 
+    console.log(taskIdx)
 
 	let con;
     try {
@@ -125,7 +143,7 @@ router.get('/detail', async function(req, res) {
 
 		res.send({
             msg: '조회 성공',
-            detail: result
+            info: result[0]
         });
 	} catch (error) {
 		console.log('에러났을때 처리하는 부분', error);
