@@ -1,5 +1,8 @@
 'use strict';
 
+var fs = require('fs');
+const child = require('child_process');
+
 class Builder {
 	constructor() {
 
@@ -73,16 +76,29 @@ class Builder {
 		]);
 
 		return new Promise(function(resolve, reject) {
+			let result = {
+				code: -1,
+				output: []
+			}
+
 			spw.stdout.on('data', function(out) {
 				console.log('excute out', out.toString('utf8'));
+				result.output.push({
+					type:'out',
+					data: out.toString('utf8')
+				});
 			});
 			spw.stderr.on('data', function(err) {
 				console.log('excute err', err.toString('utf8')); //err.toString('ascii'));
+				result.output.push({
+					type:'err',
+					data: err.toString('utf8')
+				});
 			});
-	
 			spw.on('exit', (code) => {
 				console.log('Excute Success', code);
-				resolve(code);
+				result.code = code;
+				resolve(result);
 			});
 		});
 	}
@@ -118,33 +134,49 @@ class Builder {
 		var spw = child.spawn(execPath, []);
 
 		return new Promise(function(resolve, reject) {
+			let result = {
+				code: -1,
+				output: []
+			}
+
 			spw.stdout.on('data', function(out) {
 				console.log('excute out', out.toString('utf8'));
+				result.output.push({
+					type:'out',
+					data: out.toString('utf8')
+				});
 			});
 			spw.stderr.on('data', function(err) {
 				console.log('excute err', err.toString('utf8')); //err.toString('ascii'));
+				result.output.push({
+					type:'err',
+					data: err.toString('utf8')
+				});
 			});
 			spw.on('exit', (code) => {
 				console.log('Excute Success', code);
-				resolve(code);
+				result.code = code;
+				resolve(result);
 			});
 		});
+	}
+
+
+	excute = async (studentId, taskIdx, code, language) => {
+
 	}
 
 	submission = async (studentId, taskIdx, code, language) => {
 		let userDirectory = "Submission/" + studentId;
 		let taskDirectory = userDirectory  + "/" + taskIdx;
+		let output = null;
 
-		if(language === 'c/c++') {
+		if(language === 'c' || language === 'c++') {
 			let outputPath = taskDirectory + '/c_output';
 			this.studentInit(userDirectory, taskDirectory, "main.cpp", code);
 			
-			let par = this;
-			this.c_compile(outputPath, taskDirectory + '/main.cpp').then(function(code) {
-				par.c_excute(outputPath, language);
-			}).catch(function(err) {
-				console.log(err);
-			});
+			let compileOutput = await this.c_compile(outputPath, taskDirectory + '/main.cpp');
+			output = await this.c_excute(outputPath);
 		} else if(language === 'java') {
 			// 자바의 경우 클래스 이름과 파일 이름이 같아야함
 			let classNameRegex = /(?<=class)(\s)*([a-zA-Z]).*(?=\{)/gi;
@@ -153,20 +185,17 @@ class Builder {
 
 			console.log(className, fileName);
 			
-			let par = this;
 			this.studentInit(userDirectory, taskDirectory, fileName, code);
 
-			this.java_compile(taskDirectory + '/' + fileName).then(function(code) {
-				par.java_excute(taskDirectory + '/', className);
-			}).catch(function(err) {
-				console.log(err);
-			});
+			let compileOutput = await this.java_compile(taskDirectory + '/' + fileName);
+			output = await this.java_excute(taskDirectory + '/', className);
 		} else if(language === 'python') {
 			// fileName = "main.py";
 		} else if(language === 'html') {
 			// fileName = "index.html";
 		}
 		
+		return output;
 	}
 
 	

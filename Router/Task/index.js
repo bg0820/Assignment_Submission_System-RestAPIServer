@@ -43,7 +43,7 @@ router.use(function(req, res, next){
 
 router.post('/create', async function (req, res) {
     // 과제 제목, 과제 설명, 강의 고유번호, 연장기한 사용 여부, 연장기한
-    const { title, content, courseIdx, expireDate, extendType, extendDate, examples } = req.body;
+    const { title, content, courseIdx, expireDate, extendType, extendDate, exampleList } = req.body;
     let con;
     try {
         con = await pool.getConnection();
@@ -51,8 +51,9 @@ router.post('/create', async function (req, res) {
         const query = "INSERT INTO task (title,content,courseIdx,expireDate,extendType,extendDate) values (?, ?, ?, ?, ?, ?)";
 		const exampleQuery = "INSERT INTO task_example (taskIdx, num, input, output) values (?, ?, ?, ?)";
 
-        if (extendType == 0) 
-            extendDate = null;
+		let _extendDate = null;
+        if (extendType) 
+			_extendDate = extendDate;
 
         let taskInsertResult = await pool.query(con, query, [
 			title, 
@@ -60,15 +61,15 @@ router.post('/create', async function (req, res) {
 			courseIdx, 
 			expireDate, 
 			extendType, 
-			extendDate
+			_extendDate
 		]);
 
-		for(var i = 0 ; i < examples.length; i++) {
+		for(var i = 0 ; i < exampleList.length; i++) {
 			await pool.query(con, exampleQuery, [
 				taskInsertResult.insertId, 
 				i + 1,
-				examples[i].input,
-				examples[i].output
+				exampleList[i].input,
+				exampleList[i].output
 			]);
 		}
 
@@ -83,7 +84,8 @@ router.post('/create', async function (req, res) {
 });
 
 router.get('/list', async function(req, res) {
-    const decode = req.decode;
+	const decode = req.decode;
+	const {courseIdx} = req.query;
     
     let con;
     try {
@@ -96,9 +98,9 @@ router.get('/list', async function(req, res) {
                         ' FROM (invited_course ic LEFT JOIN course c on ic.courseIdx = c.courseIdx ' +
                         ' LEFT JOIN user professorUser on c.userIdx = professorUser.userIdx) ' +
                         ' RIGHT JOIN task t on t.courseIdx = ic.courseIdx ' +
-                        ' where ic.userIdx = ?';
+                        ' where ic.userIdx = ? and ic.courseIdx = ?';
 
-            result = await pool.query(con, query, [decode.userIdx]);
+            result = await pool.query(con, query, [decode.userIdx, courseIdx]);
             
             for(var i = 0 ; i < result.length; i++) {
                 const isSubmission = 'select count(evaluationIdx) as count from evaluation WHERE userIdx = ? and taskIdx = ?'
@@ -108,8 +110,8 @@ router.get('/list', async function(req, res) {
             }
         }
 		else {// 교수인경우
-            query = "select t.taskIdx, t.title, t.content, t.expireDate, t.extendDate from task t left join course c on t.courseIdx = c.courseIdx where c.userIdx= ?";
-            result = await pool.query(con, query, [decode.userIdx]);
+            query = "select t.taskIdx, t.title, t.content, t.expireDate, t.extendDate from task t left join course c on t.courseIdx = c.courseIdx where c.userIdx= ? and t.courseIdx = ?";
+            result = await pool.query(con, query, [decode.userIdx, courseIdx]);
         }
             
         res.send({

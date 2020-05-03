@@ -11,6 +11,19 @@ router.post('/submission', async function(req, res) {
 	Builder.submission(studentId, taskIdx, code, language).then(function(result) {
 		// console.log(result);
 
+		res.send({msg: '성공', output: result});
+	});
+
+});
+
+router.post('/excute', async function(req, res) {
+	const {studentId, taskIdx, code, language} = req.body;
+
+	// console.log(code);
+
+	Builder.submission(studentId, taskIdx, code, language).then(function(result) {
+		// console.log(result);
+
 		res.send({result: 'success'});
 	});
 
