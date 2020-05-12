@@ -114,4 +114,7 @@ router.get('/info', async function(req, res) {
 	}})
 });
 
+router.post('/find/pw', async function(req, res) {
+	
+});
 module.exports = router;
