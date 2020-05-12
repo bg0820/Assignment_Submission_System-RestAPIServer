@@ -2,40 +2,6 @@ const router = require('express').Router();
 const pool = require('../../DB');
 const crypto = require('crypto');
 const Util = require('../../Util');
-const jwt      = require('jsonwebtoken');
-const jConfig = require('../../secretConfig.json');
-
-// 미들웨어 헤더 검사
-router.use(function(req, res, next){
-	let permitList = ['/auth/login', '/auth/register'];
-	let token = req.headers['authorization'];
-	
-	if(permitList.includes(req.originalUrl)) {
-		next();
-		return;
-	}
-
-    if(!token) {
-		res.status(400).send({result: 'failed', msg: '토큰을 입력해주세요.'});
-        return;
-    }
-
-    if(token.startsWith('Bearer ')) 
-		token = token.slice(7, token.length);
-	
-
-	jwt.verify(token, jConfig.jtokenSecretKey, function(err, decoded) {
-		if(err) 
-			res.status(400).send({result: 'failed', msg: '유효하지 않은 토큰 입니다.'});
-		else {
-			req.decode = decoded;
-			/*
-				req.decode. { id, name, email, userType}
-			*/
-			next();
-		}
-	});
-});
 
 // GET
 // GET  req.query
@@ -101,20 +67,66 @@ router.post('/login', async function(req, res) {
 	} finally {
 		con.release();
 	}
-});
-
-
-router.get('/info', async function(req, res) {
-	let decode = req.decode;
-
-	res.send({msg: '조회 성공', info: {
-		id: decode.id,
-		name: decode.name,
-		userType: decode.userType
-	}})
-});
-
-router.post('/find/pw', async function(req, res) {
 	
 });
+	
+router.post('/find/pw', async function(req, res) {
+		const {id, email} = req.body;
+	
+		let con;
+		try {
+			con = await pool.getConnection();
+	
+			const findQuery = 'SELECT count(id) as count FROM user WHERE id = ? and email = ?';
+			let result = await pool.query(con, findQuery, [id, email]);
+	
+			// 없음
+			if(result[0].count === 0) {
+				res.status(200).send({
+					msg: '없는 사용자 입니다.'
+				});
+			} else {
+				let alphabet = [];
+				
+				for(var i = 0 ; i <= 9; i++)
+					alphabet.push(i.toString());
+	
+				for(var i= 65; i <= 90; i++) 
+					alphabet.push(String.fromCharCode(i));
+	
+				for(var i= 97; i <= 122; i++) 
+					alphabet.push(String.fromCharCode(i));
+				
+				let randomPw = ''; 
+				for(var i= 0; i < 10; i++) {
+					randomPw += alphabet[Math.floor(Math.random() * alphabet.length)]; // 0 ~ alphabet.length - 1
+				}
+	
+				const updatePw= 'UPDATE user SET pw = ? WHERE id = ? and email = ?';
+	
+				// 비밀번호 sha256 방식으로 해시화
+				var _pw_sha256_hash = crypto.createHash('sha256').update(randomPw).digest('hex');
+	
+				pool.query(con, updatePw, [_pw_sha256_hash, id, email]);
+	
+				let opts = {
+					senderAddress : 'help@submission.co.kr',
+					senderName: '관리자',
+					title: '비밀번호 찾기 결과',
+					body: '변경된 비밀번호는 "' + randomPw + '" 입니다.',
+					receiverList: [{
+							receiveMailAddr: email,
+							receiveType: 'MRT0'
+					}]
+				}
+	
+			}
+		} catch (error) {
+			console.log('에러났을때 처리하는 부분', error);
+			res.send({msg: '알수없는 에러 실패'});
+		} finally {
+			con.release();
+		}
+	});
+
 module.exports = router;
