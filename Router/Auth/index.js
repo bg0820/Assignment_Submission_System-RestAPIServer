@@ -119,7 +119,22 @@ router.post('/find/pw', async function(req, res) {
 							receiveType: 'MRT0'
 					}]
 				}
-	
+				let resp = await axios({
+					method: 'POST',
+					url: 'https://api-mail.cloud.toast.com/email/v1.6/appKeys/JwAbGFzEzANYAUhd/sender/mail',
+					data: opts
+				});
+				
+				console.log(resp.data.body.data);
+				if(resp.data.body.data.results[0].resultCode == 0) {
+					res.send({
+						msg: '메일 전송 성공'
+					});
+				} else {
+					res.send({
+						msg: '메일 전송 실패'
+					});
+				}
 			}
 		} catch (error) {
 			console.log('에러났을때 처리하는 부분', error);
