@@ -3,6 +3,8 @@ const express = require('express');
 const app = express();
 const http = require('http').Server(app);
 
+const socketIO = require('./SocketIO')(http);
+
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const config = require('./secretConfig.json');

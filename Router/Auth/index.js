@@ -5,6 +5,8 @@ const Util = require('../../Util');
 const jwt      = require('jsonwebtoken');
 const jConfig = require('../../secretConfig.json');
 
+const axios = require('axios');
+
 // 미들웨어 헤더 검사
 router.use(function(req, res, next){
 	let permitList = ['/auth/login', '/auth/register'];
@@ -90,9 +92,9 @@ router.post('/login', async function(req, res) {
 				email: result[0].email,
 				userType: result[0].userType
 			});
-			res.send({msg: '로그인 성공', token: token});
+			res.status(200).send({msg: '로그인 성공', token: token});
 		} else {
-			res.send({msg: '로그인 실패'});
+			res.status(400).send({msg: '로그인 실패'});
 		}
 
 	} catch (error) {
