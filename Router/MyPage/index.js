@@ -55,15 +55,4 @@ router.post('/change', async function (req, res) {
     }
 });
 
-router.get('/info', async function(req, res) {
-	let decode = req.decode;
-
-	res.send({msg: '조회 성공', info: {
-		id: decode.id,
-		name: decode.name,
-		userType: decode.userType,
-		email: decode.email
-	}})
-});
-
 module.exports = router;
