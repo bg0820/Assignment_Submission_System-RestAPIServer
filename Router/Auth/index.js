@@ -2,7 +2,40 @@ const router = require('express').Router();
 const pool = require('../../DB');
 const crypto = require('crypto');
 const Util = require('../../Util');
+const jwt      = require('jsonwebtoken');
+const jConfig = require('../../secretConfig.json');
 
+// 미들웨어 헤더 검사
+router.use(function(req, res, next){
+	let permitList = ['/auth/login', '/auth/register'];
+	let token = req.headers['authorization'];
+
+	if(permitList.includes(req.originalUrl)) {
+		next();
+		return;
+	}
+
+    if(!token) {
+		res.status(400).send({result: 'failed', msg: '토큰을 입력해주세요.'});
+        return;
+    }
+
+    if(token.startsWith('Bearer ')) 
+		token = token.slice(7, token.length);
+
+
+	jwt.verify(token, jConfig.jtokenSecretKey, function(err, decoded) {
+		if(err) 
+			res.status(400).send({result: 'failed', msg: '유효하지 않은 토큰 입니다.'});
+		else {
+			req.decode = decoded;
+			/*
+				req.decode. { id, name, email, userType}
+			*/
+			next();
+		}
+	});
+});
 // GET
 // GET  req.query
 // POST req.body
