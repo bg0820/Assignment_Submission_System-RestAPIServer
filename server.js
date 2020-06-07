@@ -31,6 +31,8 @@ app.use('/test', require('./Router/Test'));
 app.use('/course', require('./Router/Course'));
 app.use('/task', require('./Router/Task'));
 app.use('/user', require('./Router/User'));
+app.use('/mypage', require('./Router/MyPage'));
+
 
 http.listen(3000, function(){
 	console.log('rest api server on 3000'); 
