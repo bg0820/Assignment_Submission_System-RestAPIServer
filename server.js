@@ -3,6 +3,8 @@ const express = require('express');
 const app = express();
 const http = require('http').Server(app);
 
+const socketIO = require('./SocketIO')(http);
+
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const config = require('./secretConfig.json');
@@ -16,7 +18,7 @@ app.use(cors({
 	origin: '*',
 	optionsSuccessStatus: 200,
 }));
-
+ 
 // Body-parser
 app.use(bodyParser.urlencoded({ extended: true, limit: '5mb' }));
 app.use(bodyParser.json({limit: '5mb'}));
@@ -31,6 +33,8 @@ app.use('/test', require('./Router/Test'));
 app.use('/course', require('./Router/Course'));
 app.use('/task', require('./Router/Task'));
 app.use('/user', require('./Router/User'));
+app.use('/mypage', require('./Router/MyPage'));
+
 
 http.listen(3000, function(){
 	console.log('rest api server on 3000'); 

@@ -22,9 +22,6 @@ router.use(function(req, res, next){
 			res.status(400).send({result: 'failed', msg: '유효하지 않은 토큰 입니다.'});
 		else {
 			req.decode = decoded;
-			/*
-				req.decode. { id, name, email, userType}
-			*/
 			next();
 		}
 	});
@@ -42,6 +39,41 @@ router.use(function(req, res, next){
  강의 목록 [ 학생 ]
 
 */
+
+router.get('/chat', async function(req, res) {
+	const {courseIdx, type} = req.query;
+
+	let con;
+	try {
+		con = await pool.getConnection();
+
+		const query = "select u.userIdx, u.name as userName, sendTime as time, content as chat, cl.courseIdx from chatLog cl left join user u on cl.userIdx = u.userIdx where courseIdx = ? and chatType = ?";
+
+		let chatLog = await pool.query(con, query, [courseIdx, type]);
+		
+		let chats = [];
+		// 학생 초대
+		for(var i = 0 ; i < chatLog.length; i++)  {
+			if(type === '0') {
+				chatLog[i].type  = 'notice';
+			} else {
+				chatLog[i].type = 'qna';
+			}
+
+		}
+
+		res.status(200).send({msg: '조회 성공', chats: chatLog});
+	} catch (error) {
+		console.log('에러났을때 처리하는 부분', error);
+		// if(error.errno === 1062) {
+		// 	res.send({msg: '이미 개설된 강의 입니다.'});
+		// } else
+		res.status(404).send({msg: '알수없는 에러 실패'});
+	} finally {
+		con.release();
+	}
+
+})
 router.post('/create', async function(req, res) {
 	const {courseName, language, userIdxList} = req.body;
 	let decode = req.decode;
@@ -80,13 +112,12 @@ router.get('/list', async function(req, res) {
     //const {userIdx} = req.body;
     //console.log("요청들어온 userIdx : ",userIdx);
 	const decode = req.decode;
-	console.log(decode);
 
 	let con;
 	try {
 		con = await pool.getConnection();
 
-		let query = '';
+		let query = ''; 
 		if(decode.userType === 0) {
 			query =   	"SELECT ic.inviteCourseIdx, ic.courseIdx, c.courseName, c.language, proU.name as professorName, proU.email " +
 						" FROM invited_course ic LEFT JOIN course c on ic.courseIdx = c.courseIdx LEFT JOIN user proU on c.userIdx = proU.userIdx " +
@@ -98,8 +129,11 @@ router.get('/list', async function(req, res) {
 		}
 
 		const list = await pool.query(con, query, [decode.userIdx]);
-		for(var i = 0 ; i < list.length; i++)
-			list[i].count = list[i].count == null ? 0 : list[i].count;
+
+		if(decode.userType === 1) {
+			for(var i = 0 ; i < list.length; i++)
+				list[i].count = list[i].count == null ? 0 : list[i].count;	
+		}
             
 		res.status(200).send({
             msg: '조회 성공',
@@ -117,5 +151,47 @@ router.get('/list', async function(req, res) {
 	}
 });
 
+router.get('/info', async function(req, res) {
+	const {courseIdx} = req.query;
+
+	const decode = req.decode;
+
+	let con;
+	try {
+		con = await pool.getConnection();
+
+		let query = ''; 
+		if(decode.userType === 0) {
+			query =   	"SELECT ic.inviteCourseIdx, ic.courseIdx, c.courseName, c.language, proU.name as professorName, proU.email " +
+						" FROM invited_course ic LEFT JOIN course c on ic.courseIdx = c.courseIdx LEFT JOIN user proU on c.userIdx = proU.userIdx " +
+						" WHERE ic.courseIdx = ?";
+		} else {
+			query = "select c.courseIdx, courseName, language, ic.count  from " + 
+					"course c left  join (Select courseIdx, count(courseIdx) as count from invited_course group by courseIdx) " +
+					" ic on c.courseIdx = ic.courseIdx where c.courseIdx = ?";
+		}
+
+		const list = await pool.query(con, query, [courseIdx]);
+		
+		if(decode.userType === 1) {
+			for(var i = 0 ; i < list.length; i++)
+				list[i].count = list[i].count == null ? 0 : list[i].count;	
+		}
+
+		res.status(200).send({
+            msg: '조회 성공',
+            info: list[0]
+        });
+
+	} catch (error) {
+		console.log('에러났을때 처리하는 부분', error);
+		// if(error.errno === 1062) {
+		// 	res.send({msg: '이미 개설된 강의 입니다.'});
+		// } else
+			res.status(404).send({msg: '알수없는 에러 실패'});
+	} finally {
+		con.release();
+	}
+});
 
 module.exports = router;
