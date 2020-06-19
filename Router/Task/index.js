@@ -156,5 +156,46 @@ router.get('/detail', async function(req, res) {
 
 });
 
+router.put('/evaluate', async function(req, res) {
+	const {evaluationIdx, score} = req.body;
+	
+	let con;
+    try {
+		con = await pool.getConnection();
+		const query = 'UPDATE evaluation SET score = ? WHERE evaluationIdx = ?';
+		await pool.query(con, query, [score, evaluationIdx]);
+
+		res.status(200).send({
+			msg: '반영 완료'
+		});
+	} catch (error) {
+		console.log('에러났을때 처리하는 부분', error);
+		res.status(400).send({msg: '알수없는 에러 실패'});
+	} finally {
+		con.release();
+	}
+
+});
+
+router.get('/list/apply', async function(req, res) {
+	const {taskIdx} = req.query;
+
+	let con;
+    try {
+		con = await pool.getConnection();
+		const query = 'SELECT u.name as studentName, u.id, e.language, e.evaluationIdx, e.score FROM evaluation e left join user u on e.userIdx = u.userIdx WHERE taskIdx = ?';
+		let result = await pool.query(con, query, [taskIdx]);
+
+		res.status(200).send({
+			msg: '조회 완료',
+			list: result
+		});
+	} catch (error) {
+		console.log('에러났을때 처리하는 부분', error);
+		res.status(400).send({msg: '알수없는 에러 실패'});
+	} finally {
+		con.release();
+	}
+});
 
 module.exports = router;

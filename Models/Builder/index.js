@@ -103,7 +103,7 @@ class Builder {
 		});
 	}
 
-	c_compile = async (output, input) => {
+	c_compile = async (socket, output, input) => {
 		var spw = child.spawn('g++', [
 			'-o',
 			output,
@@ -125,38 +125,43 @@ class Builder {
 			
 			spw.on('exit', (code) => {
 				console.log('Compile Success ' + code);
+				socket.emit('code_compile', {msg: '컴파일 완료'});
 				resolve(code);
 			});
 		});
 	}
 
-	c_excute = (execPath) => {
+	c_excute = (socket , execPath) => {
 		var spw = child.spawn(execPath, []);
 
 		return new Promise(function(resolve, reject) {
-			let result = {
+			/*let result = {
 				code: -1,
 				output: []
-			}
+			}*/
 
 			spw.stdout.on('data', function(out) {
 				console.log('excute out', out.toString('utf8'));
-				result.output.push({
+				/*result.output.push({
 					type:'out',
 					data: out.toString('utf8')
-				});
+				});*/
+
+				socket.emit('code_exec', {type: 'out', msg: out.toString('utf8')});
 			});
 			spw.stderr.on('data', function(err) {
 				console.log('excute err', err.toString('utf8')); //err.toString('ascii'));
-				result.output.push({
+				/*result.output.push({
 					type:'err',
 					data: err.toString('utf8')
-				});
+				});*/
+
+				socket.emit('code_exec', {type: 'err', msg: err.toString('utf8')});
 			});
 			spw.on('exit', (code) => {
 				console.log('Excute Success', code);
-				result.code = code;
-				resolve(result);
+				socket.emit('code_exec', {type: 'exit', msg: code});
+				resolve(code);
 			});
 		});
 	}
@@ -166,7 +171,7 @@ class Builder {
 
 	}
 
-	submission = async (studentId, taskIdx, code, language) => {
+	submission = async (socket, studentId, taskIdx, code, language) => {
 		let userDirectory = "Submission/" + studentId;
 		let taskDirectory = userDirectory  + "/" + taskIdx;
 		let output = null;
@@ -175,8 +180,9 @@ class Builder {
 			let outputPath = taskDirectory + '/c_output';
 			this.studentInit(userDirectory, taskDirectory, "main.cpp", code);
 			
-			let compileOutput = await this.c_compile(outputPath, taskDirectory + '/main.cpp');
-			output = await this.c_excute(outputPath);
+			let compileOutput = await this.c_compile(socket, outputPath, taskDirectory + '/main.cpp');
+			output = await this.c_excute(socket, outputPath);
+			console.log(output);
 		} else if(language === 'java') {
 			// 자바의 경우 클래스 이름과 파일 이름이 같아야함
 			let classNameRegex = /(?<=class)(\s)*([a-zA-Z]).*(?=\{)/gi;
