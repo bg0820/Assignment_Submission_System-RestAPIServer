@@ -18,7 +18,7 @@ app.use(cors({
 	origin: '*',
 	optionsSuccessStatus: 200,
 }));
-
+ 
 // Body-parser
 app.use(bodyParser.urlencoded({ extended: true, limit: '5mb' }));
 app.use(bodyParser.json({limit: '5mb'}));
