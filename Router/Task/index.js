@@ -67,6 +67,34 @@ router.post('/create', async function (req, res) {
 
 });
 
+router.get('/update', async function(req, res) {
+	const {taskIdx} = req.query;
+    const decode = req.decode; 
+    console.log(taskIdx)
+
+	let con;
+    try {
+		con = await pool.getConnection();
+		const query = 'SELECT t.title, t.content, t.expireDate, t.extendType, t.extendDate, c.language FROM task t left join course c on t.courseIdx = c.courseIdx WHERE t.taskIdx = ?';
+		//const exampleQuery = "SELECT num, input, output FROM task_example WHERE taskIdx = ?";
+
+		let result = await pool.query(con, query, [taskIdx]);
+		//let exampleResult = await pool.query(con, exampleQuery, [taskIdx]);
+		//result[0].example = exampleResult;
+
+		res.send({
+            msg: '조회 성공',
+            info: result[0]
+        });
+	} catch (error) {
+		console.log('에러났을때 처리하는 부분', error);
+    	res.send({msg: '알수없는 에러 실패'});
+    } finally {
+        con.release();
+    }
+
+});
+
 router.get('/list', async function(req, res) {
     const decode = req.decode; // {courseIdx} = req.body;
     console.log(decode);
