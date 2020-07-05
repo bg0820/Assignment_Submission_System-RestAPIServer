@@ -261,10 +261,13 @@ class Builder {
 			}
 
 			let outputStr;
-
-			if(language === 'c' || language === 'java') {
+			if(language === 'c' || language === 'c++' || language === 'java') {
+				let outputStrArr =[];
+				for(var i = 0 ; i < output.output.length; i++) {
+					outputStrArr.push(output.output[i].data);
+				}
 				outputLocation = taskDirectory + '/output_' + language + '.txt';
-				outputStr  = output.output.join('\n');
+				outputStr  = outputStrArr.join('\n');
 			} else if(language === 'html') {
 				outputLocation = taskDirectory + '/index.html';
 				outputStr = code;
@@ -285,13 +288,13 @@ class Builder {
 			const existQuery = 'SELECT * FROM evaluation WHERE taskIdx = ? and userIdx = ?';
 			let existResult = await pool.query(con, existQuery, [taskIdx, userIdx]);
 			
-			const query = 'INSERT INTO evaluation (taskIdx, userIdx, outputLocation, codeLocation, score, language, submissionDate) values (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)';
-
+			
 			if(existResult.length == 0) {
-				query = 'UPDATE evaluation SET submissionDate = CURRENT_TIMESTAMP WHERE taskIdx = ? and userIdx = ?';
-				await pool.query(con, query, [taskIdx, userIdx]);
-			} else {
+				const query = 'INSERT INTO evaluation (taskIdx, userIdx, outputLocation, codeLocation, score, language, submissionDate) values (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)';
 				await pool.query(con, query, [taskIdx, userIdx, outputLocation,codeLocation, 100.0, language]);
+			} else {
+				const query = 'UPDATE evaluation SET submissionDate = CURRENT_TIMESTAMP WHERE taskIdx = ? and userIdx = ?';
+				await pool.query(con, query, [taskIdx, userIdx]);
 			}
 			
 			socket.emit('code_submit', {type:'result', result: 'success', msg: '제출 완료'});

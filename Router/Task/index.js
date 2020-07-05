@@ -42,41 +42,44 @@ router.use(function(req, res, next){
 
 */
 
-/*
-router.put('/edit', async function (req, res) {
+
+router.post('/edit', async function (req, res) {
     // 과제 제목, 과제 설명, 강의 고유번호, 연장기한 사용 여부, 연장기한
-    const { title, content, courseIdx, expireDate, extendType, extendDate, exampleList } = req.body;
+    const { taskIdx, title, content, courseIdx, expireDate, extendType, extendDate, exampleList } = req.body;
     let con;
     try {
         con = await pool.getConnection();
 
-        const query = "INSERT INTO task (title,content,courseIdx,expireDate,extendType,extendDate) values (?, ?, ?, ?, ?, ?)";
+        const query = "UPDATE task SET title = ?, content =?, expireDate = ?,extendType = ?,extendDate = ? WHERE taskIdx = ?";
 		const exampleQuery = "INSERT INTO task_example (taskIdx, num, input, output) values (?, ?, ?, ?)";
-		const deleteQuery = "DELETE FROM task_example WHERE taskIdx not in (?)";
+		const deleteQuery = "DELETE FROM task_example WHERE taskIdx = ?";
 
 		let _extendDate = null;
         if (extendType) 
 			_extendDate = extendDate;
 
-        let taskInsertResult = await pool.query(con, query, [
+        await pool.query(con, query, [
 			title, 
-			content, 
-			courseIdx, 
+			content,
 			expireDate, 
-			extendType, 
-			_extendDate
+			extendType == 1 ? true :  false, 
+			_extendDate ,
+			taskIdx
 		]);
+
+		// 기존 예제들 삭제
+		await pool.query(con, deleteQuery, [taskIdx]);
 
 		for(var i = 0 ; i < exampleList.length; i++) {
 			await pool.query(con, exampleQuery, [
-				taskInsertResult.insertId, 
+				taskIdx, 
 				i + 1,
 				exampleList[i].input,
 				exampleList[i].output
 			]);
 		}
 
-        res.send({ msg: '과제 생성 성공' });
+        res.send({ msg: '과제 수정 성공' });
     } catch (error) {
         console.log('에러났을때 처리하는 부분', error);
         res.send({ msg: '알수없는 에러 실패' });
@@ -84,7 +87,7 @@ router.put('/edit', async function (req, res) {
         con.release();
     }
 
-});*/
+});
 
 router.post('/create', async function (req, res) {
     // 과제 제목, 과제 설명, 강의 고유번호, 연장기한 사용 여부, 연장기한
@@ -221,7 +224,7 @@ router.get('/detail', async function(req, res) {
 	let con;
     try {
 		con = await pool.getConnection();
-		const query = 'SELECT t.title, t.content, c.language FROM task t left join course c on t.courseIdx = c.courseIdx WHERE t.taskIdx = ?';
+		const query = 'SELECT t.title, t.content, t.expireDate, t.extendType, t.extendDate, c.language FROM task t left join course c on t.courseIdx = c.courseIdx WHERE t.taskIdx = ?';
 		const exampleQuery = "SELECT num, input, output FROM task_example WHERE taskIdx = ?";
 
 		let result = await pool.query(con, query, [taskIdx]);
@@ -290,6 +293,7 @@ router.get('/list/apply', async function(req, res) {
 					flag: 'r'
 				});
 
+				console.log(output);
 				data.users.push({
 					studentName: result[i].studentName,
 					id: result[i].id,
@@ -337,5 +341,31 @@ router.post('/delete', async function(req, res) {
 
 
 });
+
+
+router.get('/list/grade', async function(req, res) {
+	const {courseIdx, studentIdx} = req.query;
+ 
+	let con;
+	try {
+	   con = await pool.getConnection();
+	   const query = 'select t.taskIdx, t.title, t.content, e.score ' + 
+		  'from task t left join evaluation e on t.taskIdx = e.taskIdx ' +
+		  'left join user u on (e.userIdx = u.userIdx) ' +
+		  'where u.userIdx = ? and t.courseIdx = ?';
+ 
+	   let result = await pool.query(con, query, [studentIdx, courseIdx]);
+ 
+	   res.status(200).send({
+		  msg: '조회 완료',
+		  list: result
+	   });
+	} catch (error) {
+	   console.log('에러났을때 처리하는 부분', error);
+	   res.status(400).send({msg: '알수없는 에러 실패'});
+	} finally {
+	   con.release();
+	}
+ });
 
 module.exports = router;

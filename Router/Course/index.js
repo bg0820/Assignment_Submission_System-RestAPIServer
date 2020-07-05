@@ -42,6 +42,82 @@ router.use(function(req, res, next){
 
 router.get('/chat', async function(req, res) {
 	const {courseIdx, type} = req.query;
+ 
+	let con;
+	try {
+	   con = await pool.getConnection();
+ 
+	   const query = "select u.userIdx, u.name as userName, sendTime as time, content as chat, cl.courseIdx from chatLog cl left join user u on cl.userIdx = u.userIdx where courseIdx = ? and chatType = ?";
+ 
+	   let chatLog = await pool.query(con, query, [courseIdx, type]);
+	   
+	   let chats = [];
+	   // 학생 초대
+	   for(var i = 0 ; i < chatLog.length; i++)  {
+		  if(type === '0') {
+			 chatLog[i].type  = 'notice';
+		  } else {
+			 chatLog[i].type = 'qna';
+		  }
+ 
+	   }
+ 
+	   res.status(200).send({msg: '조회 성공', chats: chatLog});
+	} catch (error) {
+	   console.log('에러났을때 처리하는 부분', error);
+	   // if(error.errno === 1062) {
+	   //    res.send({msg: '이미 개설된 강의 입니다.'});
+	   // } else
+	   res.status(404).send({msg: '알수없는 에러 실패'});
+	} finally {
+	   con.release();
+	}
+ 
+ });
+
+router.get('/list/student', async function(req, res) {
+	const {courseIdx} = req.query;
+ 
+ 
+	let con;
+	try {
+	   con = await pool.getConnection();
+ 
+	   const query = 'select ic.userIdx, u.id as studentId, u.name from invited_course ic left join user u on ic.userIdx = u.userIdx where ic.courseIdx = ?';
+	   let result = await pool.query(con, query, [courseIdx]);
+	   
+	   for(var i = 0; i < result.length; i++) {
+		  let item = result[i];
+ 
+		  const avgQuery = 'select avg(score) as score from evaluation e left join task t on e.taskIdx = t.taskIdx ' +
+		  'left join course c on t.courseIdx = c.courseIdx ' +
+		  'where e.userIdx = ? and c.courseIdx = ? group by c.courseIdx';
+ 
+		  let scoreResult = await pool.query(con, avgQuery, [item.userIdx, courseIdx]);
+		  if(scoreResult.length == 0)
+			 result[i].score = 0;
+		  else
+			 result[i].score = scoreResult[0].score;
+		  
+		  // result[i].score = scoreResult[0].score
+	   }
+ 
+	   res.status(200).send({msg: '조회 성공', list: result});
+	} catch (error) {
+	   console.log('에러났을때 처리하는 부분', error);
+	   // if(error.errno === 1062) {
+	   //    res.send({msg: '이미 개설된 강의 입니다.'});
+	   // } else
+	   res.status(404).send({msg: '알수없는 에러 실패'});
+	} finally {
+	   con.release();
+	}
+ 
+ });
+
+
+router.get('/chat', async function(req, res) {
+	const {courseIdx, type} = req.query;
 
 	let con;
 	try {
@@ -73,7 +149,44 @@ router.get('/chat', async function(req, res) {
 		con.release();
 	}
 
-})
+});
+
+router.post('/edit', async function(req, res) {
+	const {courseIdx, courseName, language, userIdxList} = req.body;
+	let decode = req.decode;
+
+	if(decode.userType !== 1) {
+		res.status(404).send({msg: '교수 계정이 아닙니다.'});
+		return;
+	}
+
+	let con;
+	try {
+		con = await pool.getConnection();
+
+		const updateQuery = "UPDATE course SET courseName = ?, language = ? WHERE courseIdx = ?";
+		const inviteDeleteQuery = "DELETE FROM invited_course WHERE courseIdx = ?";
+		const inviteQuery = "INSERT INTO invited_course (courseIdx, userIdx) values (?, ?)";
+
+		await pool.query(con, updateQuery, [courseName, language, courseIdx]);
+		await pool.query(con, inviteDeleteQuery, [courseIdx]);
+		
+		// 학생 초대
+		for(var i = 0 ; i < userIdxList.length; i++) 
+			await pool.query(con, inviteQuery, [courseIdx, userIdxList[i]]);
+
+		res.status(200).send({msg: '강의개설 성공'});
+	} catch (error) {
+		console.log('에러났을때 처리하는 부분', error);
+		// if(error.errno === 1062) {
+		// 	res.send({msg: '이미 개설된 강의 입니다.'});
+		// } else
+		res.status(404).send({msg: '알수없는 에러 실패'});
+	} finally {
+		con.release();
+	}
+});
+
 router.post('/create', async function(req, res) {
 	const {courseName, language, userIdxList} = req.body;
 	let decode = req.decode;
@@ -174,6 +287,10 @@ router.get('/info', async function(req, res) {
 		const list = await pool.query(con, query, [courseIdx]);
 		
 		if(decode.userType === 1) {
+			const invitedUserListQuery = 'SELECT u.userIdx, u.id, u.name FROM invited_course ic left join user u on ic.userIdx = u.userIdx WHERE courseIdx = ?';
+			const userList = await pool.query(con, invitedUserListQuery, [courseIdx]);
+			
+			list[0].userList = userList;
 			for(var i = 0 ; i < list.length; i++)
 				list[i].count = list[i].count == null ? 0 : list[i].count;	
 		}
