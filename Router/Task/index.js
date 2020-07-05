@@ -2,6 +2,7 @@ const router = require('express').Router();
 const pool = require('../../DB');
 const jwt      = require('jsonwebtoken');
 const jConfig = require('../../secretConfig.json');
+var fs = require('fs');
 
 
 // 미들웨어 헤더 검사
@@ -40,6 +41,50 @@ router.use(function(req, res, next){
  과제 목록 [ 학생 ]
 
 */
+
+/*
+router.put('/edit', async function (req, res) {
+    // 과제 제목, 과제 설명, 강의 고유번호, 연장기한 사용 여부, 연장기한
+    const { title, content, courseIdx, expireDate, extendType, extendDate, exampleList } = req.body;
+    let con;
+    try {
+        con = await pool.getConnection();
+
+        const query = "INSERT INTO task (title,content,courseIdx,expireDate,extendType,extendDate) values (?, ?, ?, ?, ?, ?)";
+		const exampleQuery = "INSERT INTO task_example (taskIdx, num, input, output) values (?, ?, ?, ?)";
+		const deleteQuery = "DELETE FROM task_example WHERE taskIdx not in (?)";
+
+		let _extendDate = null;
+        if (extendType) 
+			_extendDate = extendDate;
+
+        let taskInsertResult = await pool.query(con, query, [
+			title, 
+			content, 
+			courseIdx, 
+			expireDate, 
+			extendType, 
+			_extendDate
+		]);
+
+		for(var i = 0 ; i < exampleList.length; i++) {
+			await pool.query(con, exampleQuery, [
+				taskInsertResult.insertId, 
+				i + 1,
+				exampleList[i].input,
+				exampleList[i].output
+			]);
+		}
+
+        res.send({ msg: '과제 생성 성공' });
+    } catch (error) {
+        console.log('에러났을때 처리하는 부분', error);
+        res.send({ msg: '알수없는 에러 실패' });
+    } finally {
+        con.release();
+    }
+
+});*/
 
 router.post('/create', async function (req, res) {
     // 과제 제목, 과제 설명, 강의 고유번호, 연장기한 사용 여부, 연장기한
@@ -83,6 +128,45 @@ router.post('/create', async function (req, res) {
 
 });
 
+router.get('/list/nonAssignment', async function(req, res) {
+	const decode = req.decode;
+
+	let con;
+    try {
+        con = await pool.getConnection();
+    
+		const query = 'SELECT distinct t.taskIdx, pu.name as professorName, c.courseName, t.title, t.content, c.language, t.expireDate, t.extendDate FROM invited_course ic ' +
+						'LEFT JOIN course c on ic.courseIdx = c.courseIdx ' +
+						'LEFT JOIN task t on c.courseIdx = t.courseIdx ' +
+						'LEFT JOIN user pu on c.userIdx = pu.userIdx ' +
+						'WHERE ic.userIdx = ?';
+		
+		let result = await pool.query(con, query, [decode.userIdx]);
+		let userList = [];
+
+		for(var i = 0 ; i < result.length; i++) {
+			const evaluationCheckQuery = 'SELECT count(*) as cnt FROM evaluation WHERE userIdx = ? and taskIdx = ?';
+			let evaluationCheckResult = await pool.query(con, evaluationCheckQuery, [decode.userIdx, result[i].taskIdx]);
+
+			if(evaluationCheckResult[0].cnt == 0) {
+				userList.push(result[i]);
+			}
+		}
+
+		res.send({
+            msg: '조회 성공',
+            list: userList
+        });
+    } catch (error) {
+		console.log('에러났을때 처리하는 부분', error);
+		
+    	res.send({msg: '알수없는 에러 실패'});
+    } finally {
+        con.release();
+    }
+});
+
+
 router.get('/list', async function(req, res) {
 	const decode = req.decode;
 	const {courseIdx} = req.query;
@@ -103,10 +187,11 @@ router.get('/list', async function(req, res) {
             result = await pool.query(con, query, [decode.userIdx, courseIdx]);
             
             for(var i = 0 ; i < result.length; i++) {
-                const isSubmission = 'select count(evaluationIdx) as count from evaluation WHERE userIdx = ? and taskIdx = ?'
+                const isSubmission = 'select count(evaluationIdx) as count, score from evaluation WHERE userIdx = ? and taskIdx = ?'
                 const isSubmissionResult = await pool.query(con, isSubmission, [decode.userIdx, result[i].taskIdx]);
 
-                result[i].isSubmission = isSubmissionResult[0].count == 0 ? false : true
+				result[i].isSubmission = isSubmissionResult[0].count == 0 ? false : true;
+				result[i].score = isSubmissionResult[0].score;
             }
         }
 		else {// 교수인경우
@@ -177,13 +262,66 @@ router.put('/evaluate', async function(req, res) {
 
 });
 
+// 학생 과제 목록
 router.get('/list/apply', async function(req, res) {
 	const {taskIdx} = req.query;
 
 	let con;
     try {
 		con = await pool.getConnection();
-		const query = 'SELECT u.name as studentName, u.id, e.language, e.evaluationIdx, e.score FROM evaluation e left join user u on e.userIdx = u.userIdx WHERE taskIdx = ?';
+		const query = 'SELECT u.name as studentName, u.id, e.taskIdx, e.language, e.evaluationIdx, e.score, e.outputLocation, e.codeLocation, e.submissionDate FROM evaluation e left join user u on e.userIdx = u.userIdx WHERE taskIdx = ?';
+		let result = await pool.query(con, query, [taskIdx]);
+		let data = null;
+
+		if(result.length != 0) {
+			data = {
+				language: result[0].language,
+				users: []
+			};
+
+			for(var i = 0 ; i  < result.length; i++) {
+				let output = fs.readFileSync(result[i].outputLocation, {
+					encoding: 'utf8',
+					flag: 'r'
+				});
+
+				let code = fs.readFileSync(result[i].codeLocation, {
+					encoding: 'utf8',
+					flag: 'r'
+				});
+
+				data.users.push({
+					studentName: result[i].studentName,
+					id: result[i].id,
+					evaluationIdx: result[i].evaluationIdx,
+					score: result[i].score,
+					submissionDate: result[i].submissionDate,
+					output: output,
+					code: code
+				});
+			}
+		}
+
+		res.status(200).send({
+			msg: '조회 완료',
+			data: data
+		});
+	} catch (error) {
+		console.log('에러났을때 처리하는 부분', error);
+		res.status(400).send({msg: '알수없는 에러 실패'});
+	} finally {
+		con.release();
+	}
+});
+
+router.post('/delete', async function(req, res) {
+	const {taskIdx} = req.body;
+
+	let con;
+	try {
+		con = await pool.getConnection();
+		const query = 'DELETE FROM task WHERE taskIdx = ?';
+
 		let result = await pool.query(con, query, [taskIdx]);
 
 		res.status(200).send({
@@ -196,6 +334,8 @@ router.get('/list/apply', async function(req, res) {
 	} finally {
 		con.release();
 	}
+
+
 });
 
 module.exports = router;

@@ -43,11 +43,12 @@ module.exports = function (http) {
             let tokenDecode = decoded;
 			if(msg.type === 'code_exec') {
 				// 코드 실행
-				Builder.submission(socket, msg.data.studentId, msg.data.taskIdx, msg.data.code, msg.data.language);
-			} else if(msg.type === 'code_submission') {
+				console.log('code execute');
+				Builder.execute(socket, msg.data.studentId, msg.data.taskIdx, msg.data.code, msg.data.language);
+			} else if(msg.type === 'code_submit') {
 				// 코드 제출
-			}
-            else if (msg.type === 'join') {
+				Builder.submission(socket, msg.data.userIdx, msg.data.studentId, msg.data.taskIdx, msg.data.code, msg.data.language);
+			} else if (msg.type === 'join') {
                /*
                   3번강의 에 들어온사용자 있으면 
                   3_chat
