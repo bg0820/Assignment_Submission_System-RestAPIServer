@@ -38,17 +38,27 @@ module.exports = function (http) {
       console.log("[" + socketId + "] Conn " + clientIp);
 
       socket.on('message', async (msg) => {
-         console.log(msg);
          jwt.verify(msg.token, jConfig.jtokenSecretKey, async function (err, decoded) {
             let tokenDecode = decoded;
-			if(msg.type === 'code_exec') {
-				// 코드 실행
-				console.log('code execute');
-				Builder.execute(socket, msg.data.studentId, msg.data.taskIdx, msg.data.code, msg.data.language);
-			} else if(msg.type === 'code_submit') {
-				// 코드 제출
-				Builder.submission(socket, msg.data.userIdx, msg.data.studentId, msg.data.taskIdx, msg.data.code, msg.data.language);
-			} else if (msg.type === 'join') {
+
+            if(msg.type === 'code_exec') {
+               // 코드 실행
+               Builder.execute(
+                  socket, 
+                  tokenDecode.id, 
+                  msg.data.code, 
+                  msg.data.language, 
+                  msg.data.example);
+            } else if(msg.type === 'code_submit') {
+               // 코드 제출
+               Builder.submission(
+                  socket, 
+                  tokenDecode.userIdx,
+                  tokenDecode.id,
+                  msg.data.taskIdx, 
+                  msg.data.code, 
+                  msg.data.language);
+            } else if (msg.type === 'join') {
                /*
                   3번강의 에 들어온사용자 있으면 
                   3_chat
@@ -99,6 +109,7 @@ module.exports = function (http) {
          socket.on("error", function (error) {
             console.log('error : ' + error);
          });
+      
       });
    });
    return io;

@@ -51,7 +51,7 @@ router.post('/edit', async function (req, res) {
         con = await pool.getConnection();
 
         const query = "UPDATE task SET title = ?, content =?, expireDate = ?,extendType = ?,extendDate = ? WHERE taskIdx = ?";
-		const exampleQuery = "INSERT INTO task_example (taskIdx, num, input, output) values (?, ?, ?, ?)";
+		const exampleQuery = "INSERT INTO task_example (taskIdx, num, input, output, isHidden) values (?, ?, ?, ?, ?)";
 		const deleteQuery = "DELETE FROM task_example WHERE taskIdx = ?";
 
 		let _extendDate = null;
@@ -71,11 +71,15 @@ router.post('/edit', async function (req, res) {
 		await pool.query(con, deleteQuery, [taskIdx]);
 
 		for(var i = 0 ; i < exampleList.length; i++) {
+			if(exampleList[i].input == '' && exampleList[i].output == '')
+				continue;
+
 			await pool.query(con, exampleQuery, [
 				taskIdx, 
 				i + 1,
 				exampleList[i].input,
-				exampleList[i].output
+				exampleList[i].output,
+				exampleList[i].isHidden
 			]);
 		}
 
@@ -97,7 +101,7 @@ router.post('/create', async function (req, res) {
         con = await pool.getConnection();
 
         const query = "INSERT INTO task (title,content,courseIdx,expireDate,extendType,extendDate) values (?, ?, ?, ?, ?, ?)";
-		const exampleQuery = "INSERT INTO task_example (taskIdx, num, input, output) values (?, ?, ?, ?)";
+		const exampleQuery = "INSERT INTO task_example (taskIdx, num, input, output, isHidden) values (?, ?, ?, ?, ?)";
 
 		let _extendDate = null;
         if (extendType) 
@@ -113,11 +117,15 @@ router.post('/create', async function (req, res) {
 		]);
 
 		for(var i = 0 ; i < exampleList.length; i++) {
+			if(exampleList[i].input == '' && exampleList[i].output == '')
+				continue;
+
 			await pool.query(con, exampleQuery, [
 				taskInsertResult.insertId, 
 				i + 1,
 				exampleList[i].input,
-				exampleList[i].output
+				exampleList[i].output,
+				exampleList[i].isHidden
 			]);
 		}
 
@@ -225,8 +233,13 @@ router.get('/detail', async function(req, res) {
     try {
 		con = await pool.getConnection();
 		const query = 'SELECT t.title, t.content, t.expireDate, t.extendType, t.extendDate, c.language FROM task t left join course c on t.courseIdx = c.courseIdx WHERE t.taskIdx = ?';
-		const exampleQuery = "SELECT num, input, output FROM task_example WHERE taskIdx = ?";
-
+		let exampleQuery;
+		if(decode.userType === 0)
+			// 학생인경우
+			exampleQuery = "SELECT num, input, output FROM task_example WHERE taskIdx = ? and isHidden = 0";
+		else
+			exampleQuery = "SELECT num, input, output, isHidden FROM task_example WHERE taskIdx = ?";
+		
 		let result = await pool.query(con, query, [taskIdx]);
 		let exampleResult = await pool.query(con, exampleQuery, [taskIdx]);
 		result[0].example = exampleResult;
