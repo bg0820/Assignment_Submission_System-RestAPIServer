@@ -59,7 +59,7 @@ class Builder {
 		let startTime = perform.performance.now();
 
 		var childProcess = child.spawn(path, options, {
-			stdio: ['pipe' ]
+			stdio: ['pipe']
 		});
 
 		childProcess.stdin.setEncoding('utf-8');
@@ -84,10 +84,13 @@ class Builder {
 			try {
 				if(pipeInput) {
 					console.log('pipe', pipeInput);
-					for(var i = 0 ; i < pipeInput.length; i++)
-						childProcess.stdin.write(pipeInput[i] + '\n');
+					for(var i = 0 ; i < pipeInput.length; i++) {
+						childProcess.stdin.write(pipeInput[i]);
+						childProcess.stdin.write("\n");
+					}
 				}
 			} catch(e) {
+				console.log('errror', e);
 				if(e.code === 'ERR_STREAM_DESTROYED') {
 					result.failed.push("값을 입력할 수 없습니다.");
 					clearInterval(checkTimeout);
@@ -261,7 +264,7 @@ class Builder {
 				// execute
 				for(var i = 0 ; i  < examples.length; i++) {
 					let example = examples[i];
-					let inputs = example.input.split('\n');
+					let inputs = example.input === '' ? null : example.input.split('\n');
 					let outputs = example.output.split('\n');
 					var result = await this.executeCLI(socket, 'exec', outputPath, [], inputs);
 					var failed = false;
@@ -302,7 +305,7 @@ class Builder {
 				// execute
 				for(var i = 0 ; i  < examples.length; i++) {
 					let example = examples[i];
-					let inputs = example.input.split('\n');
+					let inputs = example.input === '' ? null : example.input.split('\n');
 					let outputs = example.output.split('\n');
 
 					var result = await this.executeCLI(socket, 'exec', 'bin/jdk1.8.0_241/bin/java', [
@@ -367,7 +370,7 @@ class Builder {
 		// execute
 		for(var i = 0 ; i  < examples.length; i++) {
 			let example = examples[i];
-			let inputs = example.input.split('\n');
+			let inputs = example.input === '' ? null : example.input.split('\n');
 			let outputs = example.output.split('\n');
 			var result = await this.executeCLI(socket, 'exec', excutePath, excuteArgs, inputs);
 			var failed = false;

@@ -264,6 +264,37 @@ router.get('/list', async function(req, res) {
 	}
 });
 
+router.get('/lang', async function(req, res) {
+	const {courseIdx} = req.query;
+
+	let con;
+	try {
+		con = await pool.getConnection();
+
+		let query = 'select language from course where courseIdx = ?'; 
+		const row = await pool.query(con, query, [courseIdx]);
+
+		if(row.length > 0) {
+			res.status(200).send({
+				msg: '조회 성공',
+				language: row[0].language
+			});
+		} else {
+			res.status(200).send({
+				msg: '조회 실패'
+			});
+		}
+	} catch (error) {
+		console.log('에러났을때 처리하는 부분', error);
+		// if(error.errno === 1062) {
+		// 	res.send({msg: '이미 개설된 강의 입니다.'});
+		// } else
+			res.status(404).send({msg: '알수없는 에러 실패'});
+	} finally {
+		con.release();
+	}
+});
+
 router.get('/info', async function(req, res) {
 	const {courseIdx} = req.query;
 
@@ -290,7 +321,9 @@ router.get('/info', async function(req, res) {
 			const invitedUserListQuery = 'SELECT u.userIdx, u.id, u.name FROM invited_course ic left join user u on ic.userIdx = u.userIdx WHERE courseIdx = ?';
 			const userList = await pool.query(con, invitedUserListQuery, [courseIdx]);
 			
-			list[0].userList = userList;
+			if(userList)
+				list[0].userList = userList;
+
 			for(var i = 0 ; i < list.length; i++)
 				list[i].count = list[i].count == null ? 0 : list[i].count;	
 		}

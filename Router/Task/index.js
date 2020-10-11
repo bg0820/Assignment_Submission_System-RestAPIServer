@@ -233,15 +233,32 @@ router.get('/detail', async function(req, res) {
     try {
 		con = await pool.getConnection();
 		const query = 'SELECT t.title, t.content, t.expireDate, t.extendType, t.extendDate, c.language FROM task t left join course c on t.courseIdx = c.courseIdx WHERE t.taskIdx = ?';
+		let code = '';
+		
 		let exampleQuery;
-		if(decode.userType === 0)
+		if(decode.userType === 0) {
 			// 학생인경우
 			exampleQuery = "SELECT num, input, output FROM task_example WHERE taskIdx = ? and isHidden = 0";
-		else
+			
+			let codeResult = await pool.query(
+				con, 
+				'select codeLocation from evaluation where userIdx = ? and taskIdx = ?',
+				[decode.userIdx, taskIdx]
+			);
+
+			if(codeResult.length > 0) {
+				code = fs.readFileSync(codeResult[0].codeLocation, {
+					encoding: 'utf8',
+					flag: 'r'
+				});
+			}
+		} else
 			exampleQuery = "SELECT num, input, output, isHidden FROM task_example WHERE taskIdx = ?";
 		
 		let result = await pool.query(con, query, [taskIdx]);
 		let exampleResult = await pool.query(con, exampleQuery, [taskIdx]);
+		
+		result[0].code = code;
 		result[0].example = exampleResult;
 
 		res.send({
